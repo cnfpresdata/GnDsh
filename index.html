@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dados do Sistema Confea/Crea</title>
+<script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+<style>
+  :root{
+    --azul:#1a6fc4; --azul-esc:#0f2f54; --azul-grad1:#1b4f8a; --azul-grad2:#2f7bd6;
+    --tinta:#2b3440; --cinza:#8a97a4; --linha:#e8edf2; --fundo:#f7f9fc;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Tahoma,sans-serif;background:var(--fundo);color:var(--tinta);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 22px 40px}
+
+  /* Cabeçalho */
+  .topo{background:linear-gradient(100deg,var(--azul-grad1),var(--azul-grad2));color:#fff;padding:26px 0;text-align:center;box-shadow:0 2px 18px rgba(20,60,110,.18)}
+  .topo h1{font-size:26px;font-weight:600;letter-spacing:.5px}
+  .barra-nav{display:flex;align-items:center;gap:14px;max-width:1240px;margin:18px auto 0;padding:0 22px;min-height:30px}
+  .btn-home{display:none;align-items:center;gap:7px;border:1px solid var(--linha);background:#fff;color:var(--azul);
+    border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:.18s;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .btn-home:hover{background:#eef5fc;border-color:var(--azul)}
+  .crumb{font-size:13px;color:var(--cinza)}
+  .atual{margin-left:auto;font-size:11.5px;color:var(--cinza)}
+  .atual b{color:#5d6b75}
+
+  /* Home */
+  #home .faixa-sel{text-align:center;border:1px solid var(--linha);background:#fff;border-radius:12px;
+    padding:18px;margin:6px 0 26px;font-size:18px;color:var(--azul-esc);letter-spacing:1px;font-weight:500}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .card{position:relative;border:none;border-radius:14px;padding:22px 16px 16px;cursor:pointer;text-align:center;
+    color:#fff;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    transition:.2s;box-shadow:0 4px 14px rgba(20,60,110,.12)}
+  .card:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(20,60,110,.22)}
+  .card .ico{width:42px;height:42px;margin-bottom:auto;opacity:.95}
+  .card .ico svg{width:42px;height:42px;fill:none;stroke:#fff;stroke-width:1.7}
+  .card .lab{font-size:13.5px;font-weight:600;line-height:1.25;margin-top:14px}
+  .c1{background:#13427a}.c2{background:#17345f}.c3{background:#2f7bd6}.c4{background:#3f86d8}
+  .c5{background:#4a8fda}.c6{background:#1f5fa6}.c7{background:#c7d8ee;color:#1f3a5c}.c7 svg{stroke:#1f3a5c}
+  .c8{background:#c7d8ee;color:#1f3a5c}.c8 svg{stroke:#1f3a5c}
+
+  /* Seções */
+  .secao{display:none}
+  .secao.ativa{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .sec-titulo{font-size:20px;color:var(--azul-esc);font-weight:600;margin:8px 0 2px}
+  .sec-sub{font-size:13px;color:var(--cinza);margin-bottom:18px}
+
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1.1fr 1fr 1fr}
+  .painel{background:#fff;border:1px solid var(--linha);border-radius:14px;padding:16px 18px;box-shadow:0 2px 10px rgba(20,60,110,.05)}
+  .painel h3{font-size:14px;color:var(--azul-esc);font-weight:600;display:flex;align-items:center;gap:8px}
+  .painel .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+
+  /* tooltip de informação */
+  .info{position:relative;display:inline-flex;width:18px;height:18px;border-radius:50%;border:1px solid var(--azul);
+    color:var(--azul);align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:help;flex-shrink:0}
+  .info .bolha{display:none;position:absolute;top:24px;right:0;width:300px;background:#fff;border:1px solid var(--linha);
+    border-radius:10px;padding:13px 14px;font-size:12px;font-weight:400;line-height:1.6;color:var(--tinta);
+    box-shadow:0 8px 28px rgba(0,0,0,.14);z-index:50;text-align:left}
+  .info:hover .bolha{display:block}
+  .info .bolha b{color:var(--azul)}
+  .info .bolha .fonte{margin-top:8px;color:var(--cinza);font-size:11px;border-top:1px solid var(--linha);padding-top:7px}
+
+  /* KPIs */
+  .kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .kpi{flex:1;min-width:120px;border:1px solid var(--linha);border-radius:12px;padding:14px 16px;background:#fff}
+  .kpi .v{font-size:26px;font-weight:700;color:var(--azul-esc)}
+  .kpi .l{font-size:11px;color:var(--cinza);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .kpi.azul{border-color:var(--azul)} .kpi.azul .v{color:var(--azul)}
+
+  /* tabela */
+  table.crea{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.crea th,table.crea td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--linha)}
+  table.crea th{color:var(--azul);font-weight:600;text-align:right;position:sticky;top:0;background:#fff}
+  table.crea td:first-child,table.crea th:first-child{text-align:left;font-weight:600}
+  table.crea tr.tot td{border-top:2px solid var(--azul);font-weight:700;color:var(--azul-esc)}
+  .tbl-scroll{max-height:430px;overflow:auto}
+
+  /* densidade / países */
+  .dens{display:flex;align-items:baseline;gap:10px;margin:6px 0 12px}
+  .dens .n{font-size:34px;font-weight:700;color:var(--azul)}
+  .dens .t{font-size:13px;color:var(--cinza)}
+  .paises{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .pais{border:1px solid var(--linha);border-radius:10px;padding:8px;text-align:center}
+  .pais .pn{font-size:11px;color:var(--cinza)}
+  .pais .pv{font-size:18px;font-weight:700;color:var(--azul-esc)}
+  .datas{display:flex;gap:18px;margin-top:8px}
+  .datas .d{flex:1;border:1px solid var(--linha);border-radius:10px;padding:10px 12px}
+  .datas .d .l{font-size:11px;color:var(--cinza);text-transform:uppercase}
+  .datas .d .v{font-size:15px;font-weight:700;color:var(--azul-esc)}
+
+  .placeholder{background:#fff;border:1px dashed #c4d3e2;border-radius:14px;padding:48px 30px;text-align:center;color:var(--cinza)}
+  .placeholder h3{color:var(--azul-esc);font-size:18px;margin-bottom:8px}
+  .placeholder code{background:#eef3f8;padding:2px 6px;border-radius:4px;color:var(--azul-esc)}
+
+  @media(max-width:960px){.cards{grid-template-columns:repeat(2,1fr)}.g2,.g3{grid-template-columns:1fr}}
+
+  /* projeção / aviso provisório */
+  .aviso{display:flex;gap:8px;align-items:flex-start;background:#fff8ec;border:1px solid #f3dca6;
+    border-radius:10px;padding:10px 13px;font-size:12.5px;color:#7a5b15;line-height:1.5;margin-bottom:4px}
+  .aviso b{color:#a06b00}
+  .btn-mem{border:1px solid var(--azul);background:#fff;color:var(--azul);border-radius:8px;
+    padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;transition:.18s}
+  .btn-mem:hover{background:#eef5fc}
+  .kpi.proj{border-color:#7e57c2}.kpi.proj .v{color:#6a3fb0}
+
+  /* modal */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(15,32,54,.45);z-index:1000;
+    align-items:center;justify-content:center;padding:22px;backdrop-filter:blur(2px)}
+  .modal-bg.aberto{display:flex;animation:fade .2s ease}
+  .modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:88vh;overflow:auto;
+    box-shadow:0 18px 60px rgba(15,32,54,.35)}
+  .modal-head{position:sticky;top:0;background:#fff;display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px 12px;border-bottom:1px solid var(--linha)}
+  .modal-head h3{font-size:16px;color:var(--azul-esc);font-weight:600}
+  .modal-x{border:none;background:none;font-size:24px;line-height:1;color:var(--cinza);cursor:pointer;padding:0 4px}
+  .modal-x:hover{color:var(--tinta)}
+  .modal-body{padding:18px 22px 24px;font-size:13px;color:var(--tinta);line-height:1.65}
+  .modal-body h4{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--azul);margin:16px 0 6px}
+  .modal-body .formula{background:#f3f7fb;border-radius:8px;padding:10px 12px;font-family:'Consolas',monospace;
+    font-size:12.5px;color:var(--azul-esc);margin:6px 0;overflow-x:auto}
+  .modal-body table.mem{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+  .modal-body table.mem td,.modal-body table.mem th{padding:4px 8px;border-bottom:1px solid var(--linha);text-align:right}
+  .modal-body table.mem th{color:var(--azul);text-align:right}
+  .modal-body table.mem td:first-child,.modal-body table.mem th:first-child{text-align:left}
+  .modal-body .destaque{background:#eef5fc;border-left:3px solid var(--azul);border-radius:6px;padding:9px 12px;margin:8px 0}
+  .modal-body .disc{margin-top:14px;background:#fff8ec;border:1px solid #f3dca6;border-radius:8px;
+    padding:11px 13px;font-size:12px;color:#7a5b15;line-height:1.55}
+</style>
+</head>
+<body>
+
+<div class="topo"><h1>DADOS DO SISTEMA Confea/Crea</h1></div>
+<div class="barra-nav">
+  <button class="btn-home" id="btnHome" onclick="irHome()">&#8592; Página inicial</button>
+  <span class="crumb" id="crumb"></span>
+  <span class="atual">Atualizado em <b id="dtAtual"></b></span>
+</div>
+
+<div class="wrap">
+
+  <!-- ===================== HOME ===================== -->
+  <div id="home">
+    <div class="faixa-sel">SELECIONE O PAINEL DESEJADO</div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <!-- ===================== DADOS GERAIS ===================== -->
+  <div class="secao" id="sec-dados">
+    <div class="sec-titulo">Perfil dos profissionais ativos do Sistema Confea/Crea</div>
+    <div class="sec-sub">Estoque atual de profissionais ativos (engenharia) &mdash; situação Ativo no SIC.</div>
+    <div class="kpis" id="dgKpis"></div>
+    <div class="grid g3" style="margin-top:18px">
+      <div class="painel">
+        <div class="ph"><h3>Distribuição por gênero</h3><span class="info" id="i_donut">i</span></div>
+        <div id="g_donut" style="height:280px"></div>
+        <div class="datas" id="dgDatas"></div>
+      </div>
+      <div class="painel">
+        <div class="ph"><h3>Densidade profissional</h3><span class="info" id="i_dens">i</span></div>
+        <div class="dens"><span class="n" id="dgDens"></span><span class="t">profissionais para cada<br>1.000 habitantes</span></div>
+        <div style="font-size:12px;color:var(--cinza);margin-bottom:8px">Engenheiros por 1.000 hab. &mdash; outros países</div>
+        <div class="paises" id="dgPaises"></div>
+      </div>
+      <div class="painel">
+        <div class="ph"><h3>Profissionais por CREA</h3><span class="info" id="i_tab">i</span></div>
+        <div class="tbl-scroll"><table class="crea" id="dgTabela"></table></div>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="painel">
+        <div class="ph"><h3>% de registros por gênero / ano</h3><span class="info" id="i_pct">i</span></div>
+        <div id="g_pctano" style="height:340px"></div>
+      </div>
+      <div class="painel">
+        <div class="ph"><h3>Pirâmide etária</h3><span class="info" id="i_pir">i</span></div>
+        <div id="g_piramide" style="height:340px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HISTÓRICO ===================== -->
+  <div class="secao" id="sec-hist">
+    <div class="sec-titulo">Histórico de registros dos profissionais ativos</div>
+    <div class="sec-sub">Profissionais ativos agrupados pelo ano de registro no CREA.</div>
+    <div class="grid g2">
+      <div class="painel">
+        <div class="ph"><h3>Percentual de registros por gênero / ano</h3><span class="info" id="i_h1">i</span></div>
+        <div id="g_h_pct" style="height:330px"></div>
+      </div>
+      <div class="painel">
+        <div class="ph"><h3>Número de registros por gênero / ano</h3><span class="info" id="i_h2">i</span></div>
+        <div id="g_h_abs" style="height:330px"></div>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="painel">
+        <div class="ph"><h3>Distribuição geográfica (ativos por UF)</h3><span class="info" id="i_h3">i</span></div>
+        <div id="g_mapa" style="height:430px"></div>
+      </div>
+      <div class="painel">
+        <div class="ph"><h3>Registros nos últimos 12 meses</h3><span class="info" id="i_h4">i</span></div>
+        <div id="g_u12" style="height:430px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ANUIDADES ===================== -->
+  <div class="secao" id="sec-anu">
+    <div class="sec-titulo" id="anuTitulo">Anuidades dos profissionais ativos</div>
+    <div class="sec-sub" id="anuSub">Em dia = Quitado + Remido + Isento &middot; agrupado pela CREA que registrou a anuidade.</div>
+    <div class="kpis" id="anuKpis"></div>
+    <div class="painel" style="margin-top:16px">
+      <div class="ph"><h3 id="anuChartTit">Situação da anuidade por CREA</h3><span class="info" id="i_anu">i</span></div>
+      <div id="g_anu" style="height:760px"></div>
+    </div>
+
+    <!-- ADIÇÃO: ano corrente (em andamento) + projeção por regressão linear -->
+    <div class="painel" id="anuPredPainel" style="margin-top:18px">
+      <div class="ph">
+        <h3 id="anuPredTit">Ano corrente e projeção de fechamento</h3>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn-mem" id="btnMem" onclick="abrirMemoria()">Memória de cálculo</button>
+          <span class="info" id="i_pred">i</span>
+        </div>
+      </div>
+      <div class="aviso" id="anuPredAviso"></div>
+      <div class="kpis" id="anuPredKpis" style="margin:8px 0 4px"></div>
+      <div id="g_pred" style="height:360px"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: Memória de cálculo -->
+  <div class="modal-bg" id="modalMem" onclick="fecharMemoria(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 id="memTit">Memória de cálculo</h3>
+        <button class="modal-x" onclick="fecharMemoria()">&times;</button>
+      </div>
+      <div class="modal-body" id="memBody"></div>
+    </div>
+  </div>
+
+  <!-- ===================== PLACEHOLDERS ===================== -->
+  <div class="secao" id="sec-ocde"><div class="placeholder"><h3>Correlações OCDE</h3>
+    <p>Seção em construção. Requer a <b>base de indicadores da OCDE</b> (ainda não fornecida) e a definição das variáveis a correlacionar.</p></div></div>
+  <div class="secao" id="sec-corr"><div class="placeholder"><h3>Correlações Estados</h3>
+    <p>Seção em construção. Requer a definição das variáveis (ex.: ingressantes/concluintes INEP × registrados SIC por estado).</p></div></div>
+  <div class="secao" id="sec-icr"><div class="placeholder"><h3>Ingressantes &middot; Concluintes &middot; Registrados</h3>
+    <p>Seção em construção. Reaproveita o pipeline do <b>INEP</b> + <code>Query1 v2</code> (fluxo) do script original; precisa do compilado INEP disponível.</p></div></div>
+  <div class="secao" id="sec-comp"><div class="placeholder"><h3>Comparativo de índices</h3>
+    <p>Seção em construção. Requer a definição de quais índices serão comparados.</p></div></div>
+  <div class="secao" id="sec-top10"><div class="placeholder"><h3>Top 10 Títulos</h3>
+    <p>Seção em construção. Requer uma query de contagem por <code>TitCadastro</code> (títulos) entre os ativos elegíveis.</p></div></div>
+
+</div>
+
+<script>
+var DADOS = {"atualizado_em": "03/06/2026 13:08", "ano_anuidade": 2025, "estoque": {"AC": {"F": 736, "M": 1891}, "AL": {"F": 1780, "M": 7458}, "AM": {"F": 4383, "M": 12302}, "AP": {"F": 448, "M": 1418}, "BA": {"F": 12613, "M": 41062}, "CE": {"F": 4883, "M": 20054}, "DF": {"F": 4760, "M": 18513}, "ES": {"F": 6303, "M": 18744}, "GO": {"F": 8442, "M": 29043}, "MA": {"F": 4051, "M": 12724}, "MG": {"F": 33909, "M": 125178}, "MS": {"F": 3969, "M": 13951}, "MT": {"F": 7234, "M": 21527}, "PA": {"F": 10220, "M": 25793}, "PB": {"F": 3046, "M": 10922}, "PE": {"F": 6017, "M": 22101}, "PI": {"F": 2058, "M": 8416}, "PR": {"F": 14347, "M": 61313}, "RJ": {"F": 24099, "M": 95131}, "RN": {"F": 3409, "M": 11606}, "RO": {"F": 2244, "M": 5641}, "RR": {"F": 565, "M": 1201}, "RS": {"F": 14228, "M": 54732}, "SC": {"F": 10932, "M": 39220}, "SE": {"F": 1979, "M": 5839}, "SP": {"F": 54817, "M": 288965}, "TO": {"F": 1954, "M": 5641}}, "totais": {"F": 243426, "M": 960386, "total": 1203812}, "reg_ano": {"anos": [1939, 1942, 1943, 1944, 1945, 1946, 1947, 1948, 1949, 1950, 1951, 1952, 1953, 1954, 1955, 1956, 1957, 1958, 1959, 1960, 1961, 1962, 1963, 1964, 1965, 1966, 1967, 1968, 1969, 1970, 1971, 1972, 1973, 1974, 1975, 1976, 1977, 1978, 1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026], "F": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 4, 6, 2, 2, 2, 3, 2, 5, 1, 6, 5, 7, 15, 14, 28, 31, 46, 60, 87, 156, 229, 317, 447, 560, 743, 769, 911, 962, 988, 890, 1083, 1069, 1123, 930, 813, 880, 861, 913, 1178, 1244, 1249, 1317, 1477, 1524, 1572, 1749, 2058, 2164, 2222, 2368, 3085, 3997, 4173, 5180, 4902, 5679, 6093, 6046, 6963, 7977, 8094, 9003, 11135, 12642, 15019, 13908, 16009, 15446, 15257, 14359, 15293, 8071], "M": [1, 4, 2, 3, 6, 9, 20, 14, 28, 28, 33, 59, 66, 104, 94, 111, 96, 113, 158, 234, 250, 267, 355, 406, 458, 518, 862, 1199, 1577, 1948, 2245, 2746, 3863, 4673, 6194, 6508, 7172, 8029, 8778, 8712, 9564, 9227, 8812, 8678, 9190, 9500, 8778, 7557, 6918, 6930, 6416, 6592, 7683, 7710, 7145, 7685, 8152, 8180, 8954, 9606, 10574, 11122, 11200, 12279, 14797, 18573, 20139, 22605, 22455, 24663, 25869, 26182, 28172, 29428, 28610, 30741, 36103, 37518, 43307, 38135, 43818, 42597, 43139, 40663, 43634, 22843]}, "reg_antigo": {"uf": "SP", "data": "19/01/1939"}, "reg_recente": {"uf": "MG", "data": "17/06/2026"}, "piramide": {"faixas": ["< 25", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"], "F": [2242, 34453, 64561, 47825, 32455, 21951, 13273, 8659, 6556, 5941, 3958, 1131, 421], "M": [4670, 73106, 149791, 157967, 141772, 112282, 71548, 52301, 48702, 51711, 47383, 29242, 19911]}, "anuidade": {"AC": {"ativos": 2627, "Q": 1804, "R": 0, "I": 0, "A": 4, "D": 0, "emdia": 1804, "semreg": 819}, "AL": {"ativos": 9238, "Q": 6664, "R": 0, "I": 0, "A": 24, "D": 0, "emdia": 6664, "semreg": 2550}, "AM": {"ativos": 16685, "Q": 10049, "R": 0, "I": 1, "A": 66, "D": 0, "emdia": 10050, "semreg": 6569}, "AP": {"ativos": 1866, "Q": 1620, "R": 0, "I": 0, "A": 0, "D": 0, "emdia": 1620, "semreg": 246}, "BA": {"ativos": 53675, "Q": 36086, "R": 0, "I": 0, "A": 129, "D": 0, "emdia": 36086, "semreg": 17460}, "CE": {"ativos": 24937, "Q": 16698, "R": 0, "I": 0, "A": 54, "D": 0, "emdia": 16698, "semreg": 8185}, "DF": {"ativos": 23273, "Q": 15043, "R": 0, "I": 0, "A": 5, "D": 0, "emdia": 15043, "semreg": 8225}, "ES": {"ativos": 25047, "Q": 20113, "R": 17, "I": 124, "A": 5, "D": 1466, "emdia": 20254, "semreg": 3322}, "GO": {"ativos": 37485, "Q": 25706, "R": 0, "I": 1, "A": 6, "D": 0, "emdia": 25707, "semreg": 11772}, "MA": {"ativos": 16775, "Q": 10001, "R": 0, "I": 0, "A": 101, "D": 0, "emdia": 10001, "semreg": 6673}, "MG": {"ativos": 159087, "Q": 112541, "R": 0, "I": 0, "A": 499, "D": 26, "emdia": 112541, "semreg": 46021}, "MS": {"ativos": 17920, "Q": 11809, "R": 0, "I": 0, "A": 134, "D": 1, "emdia": 11809, "semreg": 5976}, "MT": {"ativos": 28761, "Q": 18137, "R": 0, "I": 0, "A": 1535, "D": 2, "emdia": 18137, "semreg": 9087}, "PA": {"ativos": 36013, "Q": 20701, "R": 0, "I": 19, "A": 491, "D": 0, "emdia": 20720, "semreg": 14802}, "PB": {"ativos": 13968, "Q": 11217, "R": 0, "I": 0, "A": 2, "D": 0, "emdia": 11217, "semreg": 2749}, "PE": {"ativos": 28118, "Q": 20769, "R": 0, "I": 0, "A": 86, "D": 0, "emdia": 20769, "semreg": 7263}, "PI": {"ativos": 10474, "Q": 2314, "R": 1, "I": 15, "A": 327, "D": 0, "emdia": 2330, "semreg": 7817}, "PR": {"ativos": 75660, "Q": 59377, "R": 0, "I": 2, "A": 22, "D": 4, "emdia": 59379, "semreg": 16255}, "RJ": {"ativos": 119230, "Q": 78444, "R": 0, "I": 1, "A": 1878, "D": 15, "emdia": 78445, "semreg": 38892}, "RN": {"ativos": 15015, "Q": 9913, "R": 0, "I": 0, "A": 20, "D": 0, "emdia": 9913, "semreg": 5082}, "RO": {"ativos": 7885, "Q": 4561, "R": 0, "I": 0, "A": 11, "D": 0, "emdia": 4561, "semreg": 3313}, "RR": {"ativos": 1766, "Q": 1633, "R": 0, "I": 0, "A": 8, "D": 0, "emdia": 1633, "semreg": 125}, "RS": {"ativos": 68960, "Q": 49084, "R": 0, "I": 0, "A": 75, "D": 259, "emdia": 49084, "semreg": 19542}, "SC": {"ativos": 50152, "Q": 39029, "R": 0, "I": 2, "A": 19, "D": 0, "emdia": 39031, "semreg": 11102}, "SE": {"ativos": 7818, "Q": 5768, "R": 0, "I": 0, "A": 3, "D": 0, "emdia": 5768, "semreg": 2047}, "SP": {"ativos": 343782, "Q": 233071, "R": 0, "I": 0, "A": 1582, "D": 70656, "emdia": 233071, "semreg": 38473}, "TO": {"ativos": 7595, "Q": 5237, "R": 0, "I": 0, "A": 33, "D": 0, "emdia": 5237, "semreg": 2325}, "BR": {"ativos": 1203812, "Q": 827389, "R": 18, "I": 165, "A": 7119, "D": 72429, "emdia": 827572, "semreg": 296692}}, "anuidade_pred": {"ano_corrente": 2026, "ano_anterior": 2025, "anos_fechados": [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025], "emdia_fechados": [410976, 439943, 472275, 503800, 536436, 559617, 584850, 619529, 638854, 665248, 686202, 735833, 785584, 806834, 830766, 827572], "parcial_corrente": 596824, "emdia_anterior": 827572, "previsao": 879458, "slope": 29169.21617647059, "intercept": -58217373.698529415, "r2": 0.9933803664675476, "n": 16, "sx": 32280, "sy": 10104319, "sxy": 20395381116, "sxx": 65125240, "ybar": 631519.9375}, "ultimos12": {"meses": ["jul/2025", "ago/2025", "set/2025", "out/2025", "nov/2025", "dez/2025", "jan/2026", "fev/2026", "mar/2026", "abr/2026", "mai/2026", "jun/2026"], "F": [1324, 1335, 1344, 1286, 879, 606, 1644, 1511, 1800, 1650, 1321, 145], "M": [4007, 4106, 4183, 3406, 2562, 1753, 4707, 4303, 4999, 4720, 3737, 377]}, "empresas": null, "config": {"populacao": 214511951, "densidade": 5.6, "paises": [["EUA", 25], ["Japão", 25], ["Alemanha", 18], ["França", 16], ["Coreia do Sul", 16], ["Islândia", 15], ["Suécia", 15], ["Índia", 15], ["Dinamarca", 14], ["China", 13]], "nomes_uf": {"AC": "Acre", "AL": "Alagoas", "AM": "Amazonas", "AP": "Amapá", "BA": "Bahia", "CE": "Ceará", "DF": "Distrito Federal", "ES": "Espírito Santo", "GO": "Goiás", "MA": "Maranhão", "MG": "Minas Gerais", "MS": "Mato Grosso do Sul", "MT": "Mato Grosso", "PA": "Pará", "PB": "Paraíba", "PE": "Pernambuco", "PI": "Piauí", "PR": "Paraná", "RJ": "Rio de Janeiro", "RN": "Rio Grande do Norte", "RO": "Rondônia", "RR": "Roraima", "RS": "Rio Grande do Sul", "SC": "Santa Catarina", "SE": "Sergipe", "SP": "São Paulo", "TO": "Tocantins"}}};
+var fmt = function(n){ return Number(n).toLocaleString('pt-BR'); };
+var pct1 = function(v,t){ return t>0 ? (v/t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) : '0,0'; };
+
+document.getElementById('dtAtual').textContent = DADOS.atualizado_em;
+
+/* ---------- navegação ---------- */
+var ICON = {
+  bar:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  hist:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></svg>',
+  anu:'<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  corr:'<svg viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><circle cx="9" cy="14" r="1"/><circle cx="13" cy="9" r="1"/><circle cx="17" cy="6" r="1"/></svg>',
+  icr:'<svg viewBox="0 0 24 24"><path d="M3 21V9l7-5 7 5v12"/><path d="M9 21v-6h2v6"/></svg>',
+  comp:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M12 16v4M8 20h8"/></svg>',
+  top:'<svg viewBox="0 0 24 24"><path d="M5 5h14M5 5v14M5 9h10M5 13h10M5 17h6"/></svg>'
+};
+var PAINEIS = [
+  {id:'sec-dados', lab:'Dados gerais',            cls:'c1', ico:ICON.bar},
+  {id:'sec-hist',  lab:'Histórico',               cls:'c2', ico:ICON.hist},
+  {id:'sec-anu',   lab:'Anuidades',               cls:'c3', ico:ICON.anu},
+  {id:'sec-ocde',  lab:'Correlações OCDE',        cls:'c4', ico:ICON.corr},
+  {id:'sec-corr',  lab:'Correlações Estados',     cls:'c5', ico:ICON.corr},
+  {id:'sec-icr',   lab:'Ingressantes Concluintes Registrados', cls:'c6', ico:ICON.icr},
+  {id:'sec-comp',  lab:'Comparativo de índices',  cls:'c7', ico:ICON.comp},
+  {id:'sec-top10', lab:'Top 10 Títulos',          cls:'c8', ico:ICON.top}
+];
+var _render = {};
+(function(){
+  var c = document.getElementById('cards');
+  PAINEIS.forEach(function(p){
+    var d = document.createElement('div');
+    d.className = 'card '+p.cls;
+    d.onclick = function(){ abrir(p.id, p.lab); };
+    d.innerHTML = '<div class="ico">'+p.ico+'</div><div class="lab">'+p.lab+'</div>';
+    c.appendChild(d);
+  });
+})();
+function abrir(id, lab){
+  document.getElementById('home').style.display='none';
+  document.querySelectorAll('.secao').forEach(function(s){ s.classList.remove('ativa'); });
+  var s = document.getElementById(id); s.classList.add('ativa');
+  document.getElementById('btnHome').style.display='inline-flex';
+  document.getElementById('crumb').textContent = lab;
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(!_render[id]){ (DESENHAR[id]||function(){})(); _render[id]=true; }
+}
+function irHome(){
+  document.querySelectorAll('.secao').forEach(function(s){ s.classList.remove('ativa'); });
+  document.getElementById('home').style.display='block';
+  document.getElementById('btnHome').style.display='none';
+  document.getElementById('crumb').textContent='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- tooltips de informação ---------- */
+function info(id, titulo, texto, fonte){
+  var el = document.getElementById(id); if(!el) return;
+  el.innerHTML = 'i<div class="bolha"><b>'+titulo+'</b><br>'+texto+
+    '<div class="fonte">Fonte: '+fonte+'<br>Atualizado em '+DADOS.atualizado_em+'</div></div>';
+}
+
+var PLOTCFG = {responsive:true, displayModeBar:false, locale:'pt-BR'};
+var UF_ORD = Object.keys(DADOS.estoque).sort();
+
+/* =================== DADOS GERAIS =================== */
+function dgDesenhar(){
+  var T = DADOS.totais;
+  // KPIs
+  document.getElementById('dgKpis').innerHTML =
+    kpi(fmt(T.M), 'Homens', '') + kpi(fmt(T.F), 'Mulheres', '') +
+    kpi(fmt(T.total), 'Total de ativos', 'azul');
+
+  // donut
+  Plotly.newPlot('g_donut', [{
+    type:'pie', hole:.62, values:[T.M, T.F], labels:['Masculino','Feminino'],
+    marker:{colors:['#1a6fc4','#c0392b']}, sort:false, textinfo:'percent',
+    texttemplate:'%{percent:.0%}', hovertemplate:'%{label}<br>%{value:,} ('+'%{percent:.1%}'+')<extra></extra>'
+  }], {showlegend:true, legend:{orientation:'h',y:-0.05}, margin:{t:6,b:6,l:6,r:6},
+       paper_bgcolor:'#fff'}, PLOTCFG);
+
+  // datas
+  document.getElementById('dgDatas').innerHTML =
+    '<div class="d"><div class="l">Registro mais antigo</div><div class="v">'+DADOS.reg_antigo.uf+' &middot; '+DADOS.reg_antigo.data+'</div></div>'+
+    '<div class="d"><div class="l">Registro mais recente</div><div class="v">'+DADOS.reg_recente.uf+' &middot; '+DADOS.reg_recente.data+'</div></div>';
+
+  // densidade + países
+  document.getElementById('dgDens').textContent = String(DADOS.config.densidade).replace('.', ',');
+  document.getElementById('dgPaises').innerHTML = DADOS.config.paises.map(function(p){
+    return '<div class="pais"><div class="pv">'+p[1]+'</div><div class="pn">'+p[0]+'</div></div>';
+  }).join('');
+
+  // tabela CREA
+  var temEmp = DADOS.empresas && Object.keys(DADOS.empresas).length>0;
+  var h = '<tr><th>CREA</th><th>F</th><th>M</th><th>Total</th>'+(temEmp?'<th>Empresas</th>':'')+'</tr>';
+  var sF=0,sM=0,sT=0,sE=0;
+  UF_ORD.forEach(function(uf){
+    var e=DADOS.estoque[uf]; var t=e.F+e.M; sF+=e.F; sM+=e.M; sT+=t;
+    var emp = temEmp ? (DADOS.empresas[uf]||0) : null; if(emp) sE+=emp;
+    h += '<tr><td>'+uf+'</td><td>'+fmt(e.F)+'</td><td>'+fmt(e.M)+'</td><td>'+fmt(t)+'</td>'+
+         (temEmp?'<td>'+(emp!=null?fmt(emp):'—')+'</td>':'')+'</tr>';
+  });
+  h += '<tr class="tot"><td>Total</td><td>'+fmt(sF)+'</td><td>'+fmt(sM)+'</td><td>'+fmt(sT)+'</td>'+(temEmp?'<td>'+fmt(sE)+'</td>':'')+'</tr>';
+  document.getElementById('dgTabela').innerHTML = h;
+
+  // % por gênero / ano (barras empilhadas 100%)
+  var R = DADOS.reg_ano;
+  var pf = R.anos.map(function(a,i){ var t=R.F[i]+R.M[i]; return t>0?R.F[i]/t*100:0; });
+  var pm = R.anos.map(function(a,i){ var t=R.F[i]+R.M[i]; return t>0?R.M[i]/t*100:0; });
+  Plotly.newPlot('g_pctano', [
+    {type:'bar', x:R.anos, y:pm, name:'Masculino', marker:{color:'#1a6fc4'},
+     customdata:R.M, hovertemplate:'%{x}<br>Masculino: %{customdata:,} ('+'%{y:.1f}%'+')<extra></extra>'},
+    {type:'bar', x:R.anos, y:pf, name:'Feminino', marker:{color:'#c0392b'},
+     customdata:R.F, hovertemplate:'%{x}<br>Feminino: %{customdata:,} ('+'%{y:.1f}%'+')<extra></extra>'}
+  ], {barmode:'stack', margin:{t:6,b:40,l:40,r:10}, yaxis:{ticksuffix:'%',range:[0,100]},
+      legend:{orientation:'h',y:-0.18}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+      hoverlabel:hl()}, PLOTCFG);
+
+  // pirâmide
+  var P = DADOS.piramide;
+  Plotly.newPlot('g_piramide', [
+    {type:'bar', orientation:'h', y:P.faixas, x:P.M.map(function(v){return v;}), name:'Masculino',
+     marker:{color:'#1a6fc4'}, hovertemplate:'%{y} &middot; Masculino<br>%{x:,}<extra></extra>'},
+    {type:'bar', orientation:'h', y:P.faixas, x:P.F.map(function(v){return -v;}), name:'Feminino',
+     marker:{color:'#c0392b'}, customdata:P.F, hovertemplate:'%{y} &middot; Feminino<br>%{customdata:,}<extra></extra>'}
+  ], {barmode:'relative', margin:{t:6,b:40,l:46,r:10},
+      xaxis:{tickformat:',d', tickprefix:'', ticktext:[], hoverformat:',d'},
+      legend:{orientation:'h',y:-0.16}, paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+
+  info('i_donut','Distribuição por gênero','Total de profissionais <b>ativos</b> do sistema, separados por gênero (donut e cartões).','SIC &mdash; PrfCadastro (TpoRnp = Ativo)');
+  info('i_dens','Densidade profissional','Profissionais ativos por 1.000 habitantes. Comparativo internacional preenchido manualmente.','SIC + estimativa populacional IBGE');
+  info('i_tab','Profissionais por CREA','Quantidade de ativos por UF e gênero. Coluna Empresas é preenchida manualmente.','SIC &mdash; PrfCadastro / CreCadastro');
+  info('i_pct','% por gênero/ano','Composição percentual por gênero dos ativos, segundo o ano de registro no CREA.','SIC &mdash; PrfCadastro (DtaRegCre)');
+  info('i_pir','Pirâmide etária','Distribuição etária dos ativos por gênero. Idade calculada a partir da data de nascimento.','SIC &mdash; PrfCadastro (DtaNsc)');
+}
+
+/* =================== HISTÓRICO =================== */
+function histDesenhar(){
+  var R = DADOS.reg_ano;
+  var pf = R.anos.map(function(a,i){ var t=R.F[i]+R.M[i]; return t>0?R.F[i]/t*100:0; });
+  var pm = R.anos.map(function(a,i){ var t=R.F[i]+R.M[i]; return t>0?R.M[i]/t*100:0; });
+  Plotly.newPlot('g_h_pct', [
+    {x:R.anos, y:pm, name:'Masculino', mode:'lines+markers', line:{color:'#1a6fc4',width:2}, marker:{size:4},
+     hovertemplate:'%{x}<br>Masculino: %{y:.1f}%<extra></extra>'},
+    {x:R.anos, y:pf, name:'Feminino', mode:'lines+markers', line:{color:'#c0392b',width:2}, marker:{size:4},
+     hovertemplate:'%{x}<br>Feminino: %{y:.1f}%<extra></extra>'}
+  ], {margin:{t:6,b:40,l:42,r:10}, yaxis:{ticksuffix:'%',range:[0,100]}, legend:{orientation:'h',y:-0.18},
+      paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+
+  Plotly.newPlot('g_h_abs', [
+    {x:R.anos, y:R.M, name:'Masculino', mode:'lines', line:{color:'#1a6fc4',width:2},
+     hovertemplate:'%{x}<br>Masculino: %{y:,}<extra></extra>'},
+    {x:R.anos, y:R.F, name:'Feminino', mode:'lines', line:{color:'#c0392b',width:2},
+     hovertemplate:'%{x}<br>Feminino: %{y:,}<extra></extra>'}
+  ], {margin:{t:6,b:40,l:54,r:10}, yaxis:{tickformat:',d'}, legend:{orientation:'h',y:-0.18},
+      paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+
+  // mapa coroplético (geojson via CDN; fallback = barras)
+  var ufs = UF_ORD, vals = ufs.map(function(uf){ var e=DADOS.estoque[uf]; return e.F+e.M; });
+  fetch('https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/brazil-states.geojson')
+    .then(function(r){ return r.json(); })
+    .then(function(geo){
+      Plotly.newPlot('g_mapa', [{
+        type:'choropleth', geojson:geo, locations:ufs, z:vals,
+        featureidkey:'properties.sigla', colorscale:[[0,'#dbe9f7'],[1,'#0f3d72']],
+        marker:{line:{color:'#fff',width:.6}}, colorbar:{thickness:10,len:.7},
+        customdata:ufs.map(function(uf){return DADOS.config.nomes_uf[uf]||uf;}),
+        hovertemplate:'<b>%{customdata}</b><br>%{z:,} ativos<extra></extra>'
+      }], {geo:{scope:'south america', fitbounds:'locations', visible:false, bgcolor:'#fff'},
+           margin:{t:0,b:0,l:0,r:0}, paper_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+    })
+    .catch(function(){
+      var ord = ufs.map(function(uf,i){return [uf,vals[i]];}).sort(function(a,b){return a[1]-b[1];});
+      Plotly.newPlot('g_mapa', [{type:'bar', orientation:'h', y:ord.map(function(x){return x[0];}),
+        x:ord.map(function(x){return x[1];}), marker:{color:'#1a6fc4'},
+        hovertemplate:'%{y}: %{x:,} ativos<extra></extra>'}],
+        {margin:{t:6,b:30,l:40,r:10}, xaxis:{tickformat:',d'}, paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+    });
+
+  // últimos 12 meses
+  var U = DADOS.ultimos12;
+  Plotly.newPlot('g_u12', [
+    {x:U.meses, y:U.M, name:'Masculino', mode:'lines+markers', line:{color:'#1a6fc4',width:2},
+     hovertemplate:'%{x}<br>Masculino: %{y:,}<extra></extra>'},
+    {x:U.meses, y:U.F, name:'Feminino', mode:'lines+markers', line:{color:'#c0392b',width:2},
+     hovertemplate:'%{x}<br>Feminino: %{y:,}<extra></extra>'}
+  ], {margin:{t:6,b:50,l:50,r:10}, yaxis:{tickformat:',d'}, legend:{orientation:'h',y:-0.22},
+      paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+
+  info('i_h1','% por gênero/ano','Evolução da composição percentual por gênero, segundo o ano de registro.','SIC &mdash; PrfCadastro (DtaRegCre)');
+  info('i_h2','Número por gênero/ano','Quantidade absoluta de registros por gênero, segundo o ano de registro.','SIC &mdash; PrfCadastro (DtaRegCre)');
+  info('i_h3','Distribuição geográfica','Profissionais ativos por unidade da federação. Passe o mouse para ver o total.','SIC &mdash; PrfCadastro / CreCadastro');
+  info('i_h4','Últimos 12 meses','Novos registros (ativos) por mês, por gênero, nos últimos 12 meses.','SIC &mdash; PrfCadastro (DtaRegCre)');
+}
+
+/* =================== ANUIDADES =================== */
+function anuDesenhar(){
+  var A = DADOS.anuidade, BR = A.BR;
+  var ano = DADOS.ano_anuidade;
+  document.getElementById('anuTitulo').textContent = 'Anuidades ' + ano + ' dos profissionais ativos';
+  document.getElementById('anuChartTit').textContent = 'Situação da anuidade ' + ano + ' por CREA';
+  document.getElementById('g_anu').setAttribute('data-ano', ano);
+  document.getElementById('anuKpis').innerHTML =
+    kpi(fmt(BR.emdia)+' ('+pct1(BR.emdia,BR.ativos)+'%)', 'Em dia (Brasil)', 'azul') +
+    kpi(fmt(BR.A), 'Aberto', '') + kpi(fmt(BR.D), 'Débito', '') +
+    kpi(fmt(BR.semreg), 'Sem registro '+ano, '');
+
+  var ufs = UF_ORD.slice().sort(function(a,b){
+    return (A[b].emdia/A[b].ativos) - (A[a].emdia/A[a].ativos);
+  });
+  var labels = ['BRASIL'].concat(ufs);
+  var ativos = labels.map(function(l){ return l==='BRASIL'?BR.ativos:A[l].ativos; });
+  var segs = [
+    {k:'Q', n:'Quitado', c:'#1a6fc4'}, {k:'R', n:'Remido', c:'#16a085'},
+    {k:'I', n:'Isento', c:'#8e44ad'}, {k:'A', n:'Aberto', c:'#f39c12'},
+    {k:'D', n:'Débito', c:'#c0392b'}, {k:'semreg', n:'Sem registro '+ano, c:'#cbd5dc'}
+  ];
+  var traces = segs.map(function(s){
+    var abs = labels.map(function(l){ return l==='BRASIL'?BR[s.k]:A[l][s.k]; });
+    return {type:'bar', orientation:'h', name:s.n, y:labels,
+      x:abs.map(function(v,i){ return ativos[i]>0?v/ativos[i]*100:0; }),
+      marker:{color:s.c, line:{color:'#fff',width:.5}}, customdata:abs,
+      hovertemplate:'<b>%{y}</b> &mdash; '+s.n+'<br>%{customdata:,} ('+'%{x:.1f}%'+')<extra></extra>'};
+  });
+  var annots = labels.map(function(l,i){
+    var em = l==='BRASIL'?BR.emdia:A[l].emdia;
+    return {x:101, y:l, xanchor:'left', yanchor:'middle', showarrow:false,
+      font:{size:10.5,color:'#444'}, text:'<b>'+pct1(em,ativos[i])+'%</b> em dia'};
+  });
+  Plotly.newPlot('g_anu', traces, {barmode:'stack', bargap:.28, margin:{t:10,b:36,l:84,r:120},
+    xaxis:{range:[0,118], ticksuffix:'%', tickvals:[0,25,50,75,100], gridcolor:'#eef', zeroline:false},
+    yaxis:{autorange:'reversed'}, legend:{orientation:'h',y:1.04,x:.5,xanchor:'center'},
+    annotations:annots, paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()}, PLOTCFG);
+
+  info('i_anu','Anuidades '+ano,'Situação da anuidade de '+ano+' por CREA, em % dos ativos. Em dia = Quitado + Remido + Isento. O segmento cinza são ativos sem lançamento de anuidade '+ano+'.','SIC &mdash; PrfAnuidade (AnoPag = '+ano+')');
+
+  predDesenhar();
+}
+
+/* ---------- ano corrente em andamento + projeção (regressão linear) ---------- */
+function brNum(n, dec){ return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+
+function predDesenhar(){
+  var P = DADOS.anuidade_pred;
+  var painel = document.getElementById('anuPredPainel');
+  if(!P){
+    painel.querySelector('#anuPredAviso').innerHTML = 'Dados históricos insuficientes para projeção (são necessários ao menos 2 anos fechados).';
+    document.getElementById('anuPredKpis').innerHTML = '';
+    document.getElementById('btnMem').style.display = 'none';
+    document.getElementById('g_pred').innerHTML = '';
+    return;
+  }
+  var ac = P.ano_corrente, aa = P.ano_anterior;
+  document.getElementById('anuPredTit').textContent = 'Ano corrente ('+ac+') em andamento e projeção de fechamento';
+  document.getElementById('anuPredAviso').innerHTML =
+    '<span style="font-size:15px">&#9888;</span><div><b>'+ac+' está em andamento</b> &mdash; os valores ainda não estão consolidados (anuidades continuam sendo pagas ao longo do ano). '+
+    'A linha pontilhada é uma <b>projeção por regressão linear</b> sobre os anos já fechados. Veja a <b>Memória de cálculo</b> para o detalhamento.</div>';
+
+  // KPIs
+  var dif = P.previsao - P.emdia_anterior;
+  var difTxt = (dif>=0?'+':'') + fmt(dif);
+  document.getElementById('anuPredKpis').innerHTML =
+    kpi(fmt(P.parcial_corrente), 'Em dia até agora ('+ac+')', '') +
+    kpi(fmt(P.emdia_anterior), 'Fechado em '+aa, 'azul') +
+    kpi(fmt(P.previsao), 'Projeção fechamento '+ac, 'proj') +
+    kpi(difTxt+' vs '+aa, 'Variação projetada', '');
+
+  // gráfico: histórico (pontos) + reta de regressão + projeção + parcial
+  var anosLin = P.anos_fechados.concat([ac]);
+  var minA = anosLin[0], maxA = ac;
+  var linha = [{x:minA, y:P.slope*minA+P.intercept},{x:maxA, y:P.slope*maxA+P.intercept}];
+  var traces = [
+    {x:P.anos_fechados, y:P.emdia_fechados, name:'Em dia (anos fechados)', mode:'markers',
+     marker:{color:'#1a6fc4', size:9}, hovertemplate:'%{x}<br>Em dia: %{y:,}<extra></extra>'},
+    {x:linha.map(function(p){return p.x;}), y:linha.map(function(p){return p.y;}), name:'Tendência (regressão)',
+     mode:'lines', line:{color:'#8e44ad', width:2, dash:'dot'}, hoverinfo:'skip'},
+    {x:[ac], y:[P.previsao], name:'Projeção '+ac, mode:'markers',
+     marker:{color:'#8e44ad', size:14, symbol:'diamond'}, hovertemplate:'Projeção '+ac+': %{y:,}<extra></extra>'},
+    {x:[ac], y:[P.parcial_corrente], name:'Parcial '+ac+' (até agora)', mode:'markers',
+     marker:{color:'#f39c12', size:11, symbol:'circle-open', line:{width:3}}, hovertemplate:'Parcial '+ac+': %{y:,}<extra></extra>'}
+  ];
+  Plotly.newPlot('g_pred', traces, {
+    margin:{t:10,b:40,l:64,r:12}, yaxis:{tickformat:',d', rangemode:'tozero'},
+    xaxis:{dtick:1}, legend:{orientation:'h',y:-0.18}, paper_bgcolor:'#fff', plot_bgcolor:'#fff', hoverlabel:hl()
+  }, PLOTCFG);
+
+  info('i_pred','Projeção do ano corrente','Estimativa do total &ldquo;em dia&rdquo; ao fechar o ano corrente, por regressão linear sobre os anos já encerrados. O ponto laranja é o que já foi arrecadado; o losango roxo é a projeção.','SIC &mdash; PrfAnuidade (série anual)');
+}
+
+/* ---------- modal: memória de cálculo ---------- */
+function abrirMemoria(){
+  var P = DADOS.anuidade_pred;
+  if(!P) return;
+  document.getElementById('memTit').textContent = 'Memória de cálculo — Projeção da anuidade ' + P.ano_corrente;
+
+  var linhas = P.anos_fechados.map(function(a,i){
+    return '<tr><td>'+a+'</td><td>'+fmt(P.emdia_fechados[i])+'</td></tr>';
+  }).join('');
+
+  var slope = brNum(P.slope, 1), intc = brNum(P.intercept, 1), r2 = brNum(P.r2, 3);
+  var r2txt = P.r2>=0.9 ? 'ajuste muito forte' : (P.r2>=0.7 ? 'ajuste forte' : (P.r2>=0.4 ? 'ajuste moderado' : 'ajuste fraco'));
+
+  var body =
+    '<p>Estimamos quantos profissionais estarão <b>em dia</b> (Quitado + Remido + Isento) quando o ano de '+P.ano_corrente+
+    ' fechar, usando uma <b>regressão linear</b> (reta de mínimos quadrados) sobre o total de cada ano já encerrado.</p>'+
+
+    '<h4>1. Dados usados (anos fechados)</h4>'+
+    '<table class="mem"><tr><th>Ano (x)</th><th>Em dia (y)</th></tr>'+linhas+'</table>'+
+
+    '<h4>2. Fórmula</h4>'+
+    '<div class="formula">a (inclinação) = [ n·Σ(xy) − Σx·Σy ] / [ n·Σ(x²) − (Σx)² ]<br>'+
+    'b (intercepto) = [ Σy − a·Σx ] / n<br>'+
+    'projeção = a · ano + b</div>'+
+
+    '<h4>3. Somatórios (com os números reais)</h4>'+
+    '<table class="mem">'+
+    '<tr><td>n (qtd. de anos)</td><td>'+fmt(P.n)+'</td></tr>'+
+    '<tr><td>Σx (soma dos anos)</td><td>'+fmt(P.sx)+'</td></tr>'+
+    '<tr><td>Σy (soma do em dia)</td><td>'+fmt(P.sy)+'</td></tr>'+
+    '<tr><td>Σ(xy)</td><td>'+fmt(P.sxy)+'</td></tr>'+
+    '<tr><td>Σ(x²)</td><td>'+fmt(P.sxx)+'</td></tr>'+
+    '</table>'+
+
+    '<h4>4. Resultado</h4>'+
+    '<div class="formula">a = '+slope+'  &nbsp;&rarr;&nbsp; cada ano que passa, ~'+fmt(Math.round(P.slope))+' profissionais a mais em dia<br>'+
+    'b = '+intc+'</div>'+
+    '<div class="destaque">Projeção '+P.ano_corrente+' = '+slope+' &times; '+P.ano_corrente+' + ('+intc+') = <b>'+fmt(P.previsao)+'</b> em dia</div>'+
+    '<p style="margin-top:8px">Comparação: até agora foram <b>'+fmt(P.parcial_corrente)+'</b> em '+P.ano_corrente+
+    '; o ano de '+P.ano_anterior+' fechou com <b>'+fmt(P.emdia_anterior)+'</b>.</p>'+
+
+    '<h4>5. Qualidade do ajuste</h4>'+
+    '<p>R² = <b>'+r2+'</b> ('+r2txt+'). Quanto mais perto de 1, melhor a reta explica a variação histórica. '+
+    'Aqui, cerca de '+brNum(P.r2*100,0)+'% da variação é explicada pela tendência linear.</p>'+
+
+    '<div class="disc"><b>Limitações.</b> '+P.ano_corrente+' está em andamento, então o valor real só será conhecido no fechamento. '+
+    'A projeção assume que a tendência dos anos anteriores continua (modelo linear simples). '+
+    'Anos recentes ainda recebem pagamentos atrasados, então a série não está 100% consolidada, e a contagem considera apenas quem está <b>ativo hoje</b>. '+
+    'Use o número como estimativa de ordem de grandeza, não como valor definitivo.</div>';
+
+  document.getElementById('memBody').innerHTML = body;
+  document.getElementById('modalMem').classList.add('aberto');
+}
+function fecharMemoria(ev){
+  document.getElementById('modalMem').classList.remove('aberto');
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') fecharMemoria(); });
+
+/* helpers */
+function kpi(v,l,cls){ return '<div class="kpi '+(cls||'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
+function hl(){ return {bgcolor:'#fff', bordercolor:'#ccc', font:{family:'Segoe UI', size:12, color:'#2b3440'}}; }
+
+var DESENHAR = {'sec-dados':dgDesenhar, 'sec-hist':histDesenhar, 'sec-anu':anuDesenhar};
+</script>
+</body>
+</html>
